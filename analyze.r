@@ -18,6 +18,7 @@ library(biomaRt)
 BiocParallel::register(BiocParallel::SerialParam())
 
 mob_paths <- list.files("~/expression/mob16", "mob_.*.tsv.gz", full.names=TRUE)
+brain_paths <- list.files("~/expression/mob-hippocampus/transposed/hippocampus/", "wt_rep.*.tsv.gz", full.names=TRUE)
 
 # assume paths are for count matrices with spots in rows and genes in columns
 load_data <- function(paths) {
@@ -92,39 +93,57 @@ join_data <- function(sexps) {
   
 }
 
-doit <- function(expr, K=2) {
-  print(expr)
+analyze <- function(expr, K=2, num_genes=100) {
+  print("Before filtering")
+  print(dim(expr))
   filter <- rowSums(assay(expr)>5)>5
+  print("Gene filter statistics")
   print(table(filter))
 
   expr <- expr[filter,]
-  print(expr)
+  print("After gene filtering")
+  print(dim(expr))
 
   filter <- colSums(assay(expr)>5)>5
+  print("Spot filter statistics")
   print(table(filter))
 
   expr <- expr[,filter]
-  print(expr)
+  print("After spot filtering")
+  print(dim(expr))
 
   assay(expr) %>% log1p %>% rowVars -> vars
   names(vars) <- rownames(expr)
   vars <- sort(vars, decreasing = TRUE)
-  head(vars)
+  # print(head(vars))
 
-  expr <- expr[names(vars)[1:100],]
+  expr <- expr[names(vars)[1:num_genes],]
 
   assayNames(expr)[1] <- "counts"
 
   zinb <- zinbwave(expr, K=K, epsilon=1000)
 
-  print(str(zinb))
+  # print(str(zinb))
+  list(expr=expr, zinb=zinb)
+}
+
+visualize_it <- function(expr, zinb, output_prefix=NULL) {
+  coords <- cbind(x=expr$x, y=expr$y)
+  sections <- unique(sort(expr$section))
 
   W <- reducedDim(zinb)
-  print(str(W))
-  write.table(W, file="ZINB-WaVE-output.tsv", sep="\t", quote="")
+  # print(str(W))
+  if (!is.null(output_prefix)) {
+    write.table(W, file=paste0(output_prefix, "ZINB-WaVE-output.tsv"), sep="\t", quote=FALSE)
+    write.table(colData(expr), file=paste0(output_prefix, "ZINB-WaVE-colData.tsv"), sep="\t", quote=FALSE)
+    for (section_idx in sections) {
+      these <- expr$section==section_idx
+      w <- W[these,]
+      rownames(w) <- gsub(".* ", "", rownames(w))
+      write.table(w, file=paste0(output_prefix, "ZINB-WaVE-output-section", section_idx, ".tsv"), sep="\t", quote=FALSE)
+    }
+  }
 
-  print(str(expr$section))
-  print(table(expr$section))
   data.frame(W, section=as.character(expr$section)) %>%
     ggplot(aes(W1, W2, colour=section)) + geom_point() + 
     scale_color_brewer(type = "qual", palette = "Set1") +
@@ -134,7 +153,26 @@ doit <- function(expr, K=2) {
   #          coverage=colData(expr)$Coverage_Type) %>%
   #   ggplot(aes(W1, W2, colour=bio, shape=coverage)) + geom_point() + 
   #   scale_color_brewer(type = "qual", palette = "Set1") + theme_classic()
-  zinb
+
+  n <- ceiling(sqrt(length(sections)))
+  pdf(paste0(output_prefix, "ZINB-WaVE-visual.pdf"), width=n*6, height=n*6)
+  # print(str(coords))
+  for (col_idx in 1:ncol(W)) {
+    par(mfrow=c(n, n))
+    for (section_idx in sections) {
+      these <- expr$section==section_idx
+      w <- W[these,col_idx]
+      # print(str(w))
+      visualize(w, coords=coords[these,])
+    }
+  }
+  dev.off()
+}
+
+doit <- function(expr, K=2, output_prefix="./", num_genes=100) {
+  res <- analyze(expr, K=K, num_genes=num_genes)
+  visualize_it(res$expr, res$zinb, output_prefix=output_prefix)
+  res
 }
 
 main_fluidigm <- function() {
