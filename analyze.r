@@ -67,13 +67,6 @@ load_data <- function(paths) {
   SummarizedExperiment(assays=list(counts=m), colData=colData)
 }
 
-join_data <- function(sexps) {
-  genes <- c()
-  for (sexp in sexps)
-    genes <- union(genes, rownames(sexps))
-  
-}
-
 analyze <- function(expr, K=2, num_genes=100) {
   print("Before filtering")
   print(dim(expr))
