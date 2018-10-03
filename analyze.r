@@ -8,18 +8,44 @@ if (install_package) {
 }
 
 library(optparse)
-library(zinbwave)
-library(scRNAseq)
-library(matrixStats)
-library(magrittr)
-library(ggplot2)
-library(biomaRt)
 
 # Register BiocParallel Serial Execution
 BiocParallel::register(BiocParallel::SerialParam())
 
 mob_paths <- list.files("~/expression/mob16", "mob_.*.tsv.gz", full.names=TRUE)
 brain_paths <- list.files("~/expression/mob-hippocampus/transposed/hippocampus/", "wt_rep.*.tsv.gz", full.names=TRUE)
+
+parse_cli_args <- function() {
+  option_list = list(
+                     make_option(c("-k", "--types"), type="numeric", default=10,
+                                 help="number of types to use [default = 10]",
+                                 metavar="N"),
+                     make_option(c("", "--top"), type="numeric", default=100,
+                                 help="number of most variable genes to use [default = 100]",
+                                 metavar="N"),
+                     make_option(c("-t", "--transpose"), type="logical", default=FALSE,
+                                 help="ensure that genes are rows and columns are spots; use this option if spots are rows and genes are columns",
+                                 action="store_true"),
+                     make_option(c("-o", "--out"), type="character", default="./",
+                                 help="specify output path prefix [default = ./]",
+                                 action="store")
+                     );
+
+  opt_parser = OptionParser(option_list = option_list);
+  parse_args(opt_parser, positional_arguments = c(1, Inf));
+}
+
+if (!interactive()) {
+  opt <- parse_cli_args()
+  print(opt)
+}
+
+library(zinbwave)
+library(scRNAseq)
+library(matrixStats)
+library(magrittr)
+library(ggplot2)
+library(biomaRt)
 
 # assume paths are for count matrices with spots in rows and genes in columns
 load_data <- function(paths) {
@@ -161,25 +187,6 @@ main <- function(paths, opt) {
 }
 
 if(!interactive()) {
-
-  option_list = list(
-                     make_option(c("-k", "--types"), type="numeric", default=10,
-                                 help="number of types to use [default = 10]",
-                                 metavar="N"),
-                     make_option(c("", "--top"), type="numeric", default=100,
-                                 help="number of most variable genes to use [default = 100]",
-                                 metavar="N"),
-                     make_option(c("-t", "--transpose"), type="logical", default=FALSE,
-                                 help="ensure that genes are rows and columns are spots; use this option if spots are rows and genes are columns",
-                                 action="store_true"),
-                     make_option(c("-o", "--out"), type="character", default="./",
-                                 help="specify output path prefix [default = ./]",
-                                 action="store")
-                     );
-
-  opt_parser = OptionParser(option_list = option_list);
-  opt = parse_args(opt_parser, positional_arguments = c(1, Inf));
-  print(opt)
 
   # paths <- commandArgs(trailingOnly=TRUE)
   paths <- opt$args
