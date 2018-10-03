@@ -7,6 +7,7 @@ if (install_package) {
   biocLite("zinbwave")
 }
 
+library(optparse)
 library(zinbwave)
 library(scRNAseq)
 library(matrixStats)
@@ -27,7 +28,7 @@ load_data <- function(paths) {
   for (path in paths) {
     print(path)
     count <- st.load.matrix(path)
-    print(count[1:10,1:10])
+    # print(count[1:10,1:10])
     counts[[path]] = count
   }
 
@@ -35,13 +36,13 @@ load_data <- function(paths) {
   for (count in counts)
     genes <- union(genes, rownames(count))
 
-  print(str(genes))
+  # print(str(genes))
   section <- c()
   coord <- c()
   m <- matrix(0, nrow=length(genes), ncol=0)
   rownames(m) <- genes
   idx <- 1
-  print(str(m))
+  # print(str(m))
   for (count in counts) {
     n <- matrix(0, nrow=length(genes), ncol=ncol(count))
     rownames(n) <- genes
@@ -50,20 +51,20 @@ load_data <- function(paths) {
     m <- cbind(m, n)
     section <- c(section, rep(idx, ncol(count)))
     coord <- c(coord, colnames(count))
-    print(idx)
-    print(str(m))
+    # print(idx)
+    # print(str(m))
     idx <- idx + 1
   }
 
-  print(str(section))
-  print(table(section))
-  print(str(coord))
+  # print(str(section))
+  # print(table(section))
+  # print(str(coord))
 
   coord <- matrix(unlist(lapply(strsplit(coord, "x"), as.numeric)), ncol=2, byrow=TRUE)
 
   colData <- list(section=section, x=coord[,1], y=coord[,2])
 
-  print(m[1:10,1:10])
+  # print(m[1:10,1:10])
   SummarizedExperiment(assays=list(counts=m), colData=colData)
 }
 
@@ -143,22 +144,45 @@ visualize_it <- function(expr, zinb, output_prefix=NULL) {
   dev.off()
 }
 
-doit <- function(expr, K=2, output_prefix="./", num_genes=100) {
-  res <- analyze(expr, K=K, num_genes=num_genes)
+doit <- function(expr, types=2, output_prefix="./", num_genes=100) {
+  res <- analyze(expr, K=types, num_genes=num_genes)
   visualize_it(res$expr, res$zinb, output_prefix=output_prefix)
   res
 }
 
-main_fluidigm <- function() {
+main_fluidigm <- function(...) {
   data("fluidigm")
-  doit(fluidigm)
+  doit(fluidigm, ...)
 }
 
-main <- function() {
-  expr <- load_data(mob_paths[1:4])
-  doit(expr)
+main <- function(paths, opt) {
+  expr <- load_data(paths)
+  doit(expr, types=opt$options$types, output_prefix=opt$options$out, num_genes=opt$options$top)
 }
 
 if(!interactive()) {
-  main()
+
+  option_list = list(
+                     make_option(c("-k", "--types"), type="numeric", default=10,
+                                 help="number of types to use [default = 10]",
+                                 metavar="N"),
+                     make_option(c("", "--top"), type="numeric", default=100,
+                                 help="number of most variable genes to use [default = 100]",
+                                 metavar="N"),
+                     make_option(c("-t", "--transpose"), type="logical", default=FALSE,
+                                 help="ensure that genes are rows and columns are spots; use this option if spots are rows and genes are columns",
+                                 action="store_true"),
+                     make_option(c("-o", "--out"), type="character", default="./",
+                                 help="specify output path prefix [default = ./]",
+                                 action="store")
+                     );
+
+  opt_parser = OptionParser(option_list = option_list);
+  opt = parse_args(opt_parser, positional_arguments = c(1, Inf));
+  print(opt)
+
+  # paths <- commandArgs(trailingOnly=TRUE)
+  paths <- opt$args
+  if (length(paths) > 0)
+    main(paths, opt)
 }
