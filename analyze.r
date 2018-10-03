@@ -115,7 +115,7 @@ analyze <- function(expr, K=2, num_genes=100) {
 
   assayNames(expr)[1] <- "counts"
 
-  zinb <- zinbwave(expr, K=K, epsilon=1000)
+  zinb <- zinbwave(expr, K=K, epsilon=1000, X="~section")
 
   list(expr=expr, zinb=zinb)
 }
