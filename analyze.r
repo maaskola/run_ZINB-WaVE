@@ -22,21 +22,6 @@ brain_paths <- list.files("~/expression/mob-hippocampus/transposed/hippocampus/"
 
 # assume paths are for count matrices with spots in rows and genes in columns
 load_data <- function(paths) {
-  sexps <- list()
-  for (path in paths) {
-    counts <- st.load.matrix(path)
-    print(counts[1:10,1:10])
-    sexp <- SummarizedExperiment(assays=list(counts=counts))
-    # sexp <- SummarizedExperiment(assays=list(counts=t(counts)),
-    #                              colData=colData)
-                                 # rowRanges=rowRanges, colData=colData)
-    sexps[[path]] <- sexp
-  }
-  sexps
-}
-
-# assume paths are for count matrices with spots in rows and genes in columns
-load_data2 <- function(paths) {
   counts <- list()
   colData <- c()
   for (path in paths) {
@@ -79,11 +64,7 @@ load_data2 <- function(paths) {
   colData <- list(section=section, x=coord[,1], y=coord[,2])
 
   print(m[1:10,1:10])
-  sexp <- SummarizedExperiment(assays=list(counts=m), colData=colData)
-    # sexp <- SummarizedExperiment(assays=list(counts=t(counts)),
-    #                              colData=colData)
-                                 # rowRanges=rowRanges, colData=colData)
-  sexp
+  SummarizedExperiment(assays=list(counts=m), colData=colData)
 }
 
 join_data <- function(sexps) {
@@ -181,7 +162,7 @@ main_fluidigm <- function() {
 }
 
 main <- function() {
-  expr <- load_data2(mob_paths[1:4])
+  expr <- load_data(mob_paths[1:4])
   doit(expr)
 }
 
