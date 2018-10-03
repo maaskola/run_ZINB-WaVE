@@ -48,12 +48,14 @@ library(ggplot2)
 library(biomaRt)
 
 # assume paths are for count matrices with spots in rows and genes in columns
-load_data <- function(paths) {
+load_data <- function(paths, transpose=FALSE) {
   counts <- list()
   colData <- c()
   for (path in paths) {
     print(path)
     count <- st.load.matrix(path)
+    if (transpose)
+      count = t(count)
     # print(count[1:10,1:10])
     counts[[path]] = count
   }
@@ -182,7 +184,7 @@ main_fluidigm <- function(...) {
 }
 
 main <- function(paths, opt) {
-  expr <- load_data(paths)
+  expr <- load_data(paths, transpose=opt$options$transpose)
   doit(expr, types=opt$options$types, output_prefix=opt$options$out, num_genes=opt$options$top)
 }
 
