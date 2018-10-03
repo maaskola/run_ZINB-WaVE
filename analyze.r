@@ -111,7 +111,8 @@ analyze <- function(expr, K=2, num_genes=100) {
   vars <- sort(vars, decreasing = TRUE)
   # print(head(vars))
 
-  expr <- expr[names(vars)[1:num_genes],]
+  if (num_genes > 0)
+    expr <- expr[names(vars)[1:num_genes],]
 
   assayNames(expr)[1] <- "counts"
 
