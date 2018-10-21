@@ -7,7 +7,7 @@ if (install_package) {
   biocLite("zinbwave")
 }
 
-library(optparse)
+library(optparse, quietly=TRUE)
 
 # Register BiocParallel Serial Execution
 BiocParallel::register(BiocParallel::SerialParam())
