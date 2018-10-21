@@ -10,7 +10,8 @@ if (install_package) {
 library(optparse, quietly=TRUE)
 
 # Register BiocParallel Serial Execution
-BiocParallel::register(BiocParallel::SerialParam())
+# BiocParallel::register(BiocParallel::SerialParam())
+BiocParallel::register(BiocParallel::MulticoreParam())
 
 mob_paths <- list.files("~/expression/mob16", "mob_.*.tsv.gz", full.names=TRUE)
 brain_paths <- list.files("~/expression/mob-hippocampus/transposed/hippocampus/", "wt_rep.*.tsv.gz", full.names=TRUE)
