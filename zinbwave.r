@@ -60,6 +60,22 @@ suppressPackageStartupMessages({
   library(biomaRt)
 })
 
+st.load.matrix = function(path, suffix="", row.names=1, ...) {
+  x = c()
+  tmp = try({ x = read.delim(paste(path, suffix, sep=""),
+                                    header=T,
+                                    row.names=row.names,
+                                    sep="\t",
+                                    check.names=F,
+                                    ...)})
+
+  if(inherits(tmp, 'try-error')) {
+    return(as.matrix(c()))
+  } else {
+    return(as.matrix(x))
+  }
+}
+
 load_design <- function(path, use.names=FALSE) {
   design = as.data.frame(st.load.matrix(path))
   for (i in 1:ncol(design))
