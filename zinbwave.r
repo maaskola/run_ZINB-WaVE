@@ -25,10 +25,19 @@ parse_cli_args <- function() {
                                  help="number of types to use [default = 10]",
                                  metavar="N"),
                      make_option(c("", "--top"), type="numeric", default=100,
-                                 help="number of most variable genes to use [default = 100]",
+                                 help="number of top expressed genes to use; use 0 for all [default = 100]",
+                                 metavar="N"),
+                     make_option(c("", "--var"), type="numeric", default=0,
+                                 help="number of most variable genes to use; use 0 for all [default = 100]",
                                  metavar="N"),
                      make_option(c("-t", "--transpose"), type="logical", default=FALSE,
                                  help="ensure that genes are rows and columns are spots; use this option if spots are rows and genes are columns",
+                                 action="store_true"),
+                     make_option(c("-g", "--filter_genes"), type="logical", default=FALSE,
+                                 help="filter genes that are have not at least 5 reads in at least 5 spots",
+                                 action="store_true"),
+                     make_option(c("-s", "--filter_spots"), type="logical", default=FALSE,
+                                 help="filter spots that are have not at least 5 reads in at least 5 genes",
                                  action="store_true"),
                      make_option(c("-v", "--verbose"), type="logical", default=FALSE,
                                  help="be verbose",
@@ -206,32 +215,59 @@ load_data <- function(paths=c(), design_path=NULL, transpose=FALSE) {
   SummarizedExperiment(assays=list(counts=m), colData=colData)
 }
 
-analyze <- function(expr, K=2, num_genes=100) {
-  print("Before filtering")
-  print(dim(expr))
-  filter <- rowSums(assay(expr)>5)>5
-  print("Gene filter statistics")
-  print(table(filter))
+analyze <- function(expr, K=2, filter_genes=FALSE, filter_spots=FALSE, var_genes=100, top_genes=100) {
+  if (filter_genes) {
+    print("Before gene filtering")
+    print(dim(expr))
+    filter <- rowSums(assay(expr)>5)>5
+    print("Gene filter statistics")
+    print(table(filter))
 
-  expr <- expr[filter,]
-  print("After gene filtering")
-  print(dim(expr))
-
-  filter <- colSums(assay(expr)>5)>5
-  print("Spot filter statistics")
-  print(table(filter))
-
-  expr <- expr[,filter]
-  print("After spot filtering")
-  print(dim(expr))
+    expr <- expr[filter,]
+    print("After gene filtering")
+    print(dim(expr))
+  }
 
   assay(expr) %>% log1p %>% rowVars -> vars
   names(vars) <- rownames(expr)
   vars <- sort(vars, decreasing = TRUE)
   # print(head(vars))
 
-  if (num_genes > 0)
-    expr <- expr[names(vars)[1:num_genes],]
+  if (var_genes > 0)
+    expr <- expr[names(vars)[1:var_genes],]
+
+  assay(expr) %>% rowSums -> sums
+  names(sums) <- rownames(expr)
+  sums <- sort(sums, decreasing = TRUE)
+
+  if (top_genes > 0)
+    expr <- expr[names(sums)[1:top_genes],]
+
+  if (filter_spots) {
+    print("Before spot filtering")
+    print(dim(expr))
+    filter <- colSums(assay(expr)>5)>5
+    print("Spot filter statistics")
+    print(table(filter))
+
+    expr <- expr[,filter]
+    print("After spot filtering")
+    print(dim(expr))
+  }
+
+  filter <- colSums(assay(expr))>0
+  if(any(!filter)) {
+    cat(paste("Filtering", sum(!filter), "empty spots.\n"))
+    expr <- expr[,filter]
+  }
+  filter <- rowSums(assay(expr))>0
+  if(any(!filter)) {
+    cat(paste("Filtering", sum(!filter), "empty genes.\n"))
+    expr <- expr[filter,]
+  }
+
+  print("Assay dimensions:")
+  print(dim(expr))
 
   assayNames(expr)[1] <- "counts"
 
@@ -301,8 +337,12 @@ visualize_it <- function(zinb, output_prefix=NULL) {
   dev.off()
 }
 
-doit <- function(expr, types=2, output_prefix="./", num_genes=100) {
-  zinb <- analyze(expr, K=types, num_genes=num_genes)
+doit <- function(expr, types=2, output_prefix="./",
+                 filter_genes=FALSE, filter_spots=FALSE,
+                 var_genes=100, top_genes=100) {
+  zinb <- analyze(expr, K=types,
+                  filter_genes=filter_genes, filter_spots=filter_spots,
+                  var_genes=var_genes, top_genes=top_genes)
   visualize_it(zinb, output_prefix=output_prefix)
   zinb
 }
@@ -313,8 +353,11 @@ main_fluidigm <- function(...) {
 }
 
 main <- function(paths, opt) {
-  expr <- load_data(paths=paths, design_path=opt$options$design, transpose=opt$options$transpose)
-  doit(expr, types=opt$options$types, output_prefix=opt$options$out, num_genes=opt$options$top)
+  expr <- load_data(paths=paths, design_path=opt$options$design,
+                    transpose=opt$options$transpose)
+  doit(expr, types=opt$options$types, output_prefix=opt$options$out,
+       filter_genes=opt$options$filter_genes, filter_spots=opt$options$filter_spots,
+       var_genes=opt$options$var, top_genes=opt$options$top)
 }
 
 if(!interactive()) {
