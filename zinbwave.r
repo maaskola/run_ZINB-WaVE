@@ -108,20 +108,22 @@ make_beta_sample_feature <- function(design) {
   nr <- dim(design)[1]
   m <- matrix(0, nrow=nr, ncol=0)
   # rownames(m) <- rownames(design)
+  print(design)
 
-  for (col_idx in 1:ncol(design)) {
-    feature = colnames(design)[col_idx]
-    # print(paste("processing column", col_idx, feature))
+  if(ncol(design) > 0)
+    for (col_idx in 1:ncol(design)) {
+      feature = colnames(design)[col_idx]
+      # print(paste("processing column", col_idx, feature))
 
-    fact <- as.factor(design[, col_idx])
-    nc <- length(levels(fact))
-    n <- matrix(0, nrow=nr, ncol=nc)
-    colnames(n) <- paste(feature, levels(fact), sep="_")
-    for(i in 1:nr)
-      n[i, fact[i]] <- 1
-    m <- cbind(m, n)
+      fact <- as.factor(design[, col_idx])
+      nc <- length(levels(fact))
+      n <- matrix(0, nrow=nr, ncol=nc)
+      colnames(n) <- paste(feature, levels(fact), sep="_")
+      for(i in 1:nr)
+        n[i, fact[i]] <- 1
+      m <- cbind(m, n)
+    }
 
-  }
   print("beta sample feature:")
   print(m)
   m
