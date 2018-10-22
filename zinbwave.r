@@ -10,6 +10,7 @@ if (install_package) {
 library(optparse, quietly=TRUE)
 
 # Register BiocParallel Serial Execution
+# NOTE MutlicoreParam seems to lead to memor overflow on the cluster
 # BiocParallel::register(BiocParallel::SerialParam())
 BiocParallel::register(BiocParallel::MulticoreParam())
 
