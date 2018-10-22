@@ -30,7 +30,7 @@ parse_cli_args <- function() {
                      make_option(c("", "--var"), type="numeric", default=0,
                                  help="number of most variable genes to use; use 0 for all [default = 100]",
                                  metavar="N"),
-                     make_option(c("-t", "--transpose"), type="logical", default=FALSE,
+                     make_option(c("", "--transpose"), type="logical", default=FALSE,
                                  help="ensure that genes are rows and columns are spots; use this option if spots are rows and genes are columns",
                                  action="store_true"),
                      make_option(c("-g", "--filter_genes"), type="logical", default=FALSE,
