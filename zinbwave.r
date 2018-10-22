@@ -313,7 +313,7 @@ visualize_it <- function(zinb, output_prefix=NULL) {
   for(n in 1:ncol(W)) {
     p <- data.frame(z=W[,n], x=zinb$x, y=zinb$y, section=as.character(zinb$section)) %>%
       # ggplot(aes(x, y)) + geom_point() +
-      ggplot(aes(x, y, color=z)) + geom_point(size=8) +
+      ggplot(aes(x, y, color=z)) + geom_point(size=5) +
       # scale_color_gradient(aes(color=W1)) +
       facet_wrap(~section, nrow=num_plot_rows) +
       coord_equal() + theme_classic()
