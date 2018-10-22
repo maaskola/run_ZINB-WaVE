@@ -154,7 +154,7 @@ load_design_or_paths <- function(paths, design_path) {
   design
 }
 
-# assume paths are for count matrices with spots in rows and genes in columns
+# assume paths are for count matrices with genes in rows and spots in columns
 load_data <- function(paths=c(), design_path=NULL, transpose=FALSE) {
   design <- load_design_or_paths(paths, design_path)
   counts <- list()
