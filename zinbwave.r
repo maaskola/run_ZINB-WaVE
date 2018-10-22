@@ -21,7 +21,7 @@ verbose = TRUE
 parse_cli_args <- function() {
   proposed_out_prefix <- gsub(" ", "_", paste("zinbwave", Sys.time()))
   option_list = list(
-                     make_option(c("-k", "--types"), type="numeric", default=10,
+                     make_option(c("-t", "--types"), type="numeric", default=10,
                                  help="number of types to use [default = 10]",
                                  metavar="N"),
                      make_option(c("", "--top"), type="numeric", default=100,
