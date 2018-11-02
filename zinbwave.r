@@ -46,6 +46,9 @@ parse_cli_args <- function() {
                      make_option(c("-S", "--surf"), type="logical", default=FALSE,
                                  help="use ZINB-SURF in place of ZINB-WaVE for large datasets",
                                  action="store_true"),
+                     make_option(c("-F", "--surf_freq"), type="logical", default=0.1,
+                                 help="proportion of spots to use for inference in ZINB-SURF",
+                                 action="store_true"),
                      make_option(c("-v", "--verbose"), type="logical", default=FALSE,
                                  help="be verbose",
                                  action="store_true"),
@@ -226,7 +229,7 @@ load_data <- function(paths=c(), design_path=NULL, transpose=FALSE) {
   SummarizedExperiment(assays=list(counts=m), colData=colData)
 }
 
-analyze <- function(expr, K=2, filter_genes=FALSE, filter_spots=FALSE, var_genes=100, top_genes=100, surf=FALSE) {
+analyze <- function(expr, K=2, filter_genes=FALSE, filter_spots=FALSE, var_genes=100, top_genes=100, surf=FALSE, surf_freq=0.1) {
   if (filter_genes) {
     print("Before gene filtering")
     print(dim(expr))
@@ -288,11 +291,10 @@ analyze <- function(expr, K=2, filter_genes=FALSE, filter_spots=FALSE, var_genes
   print("using formula:")
   print(my_formula)
 
-  method <- zinbwave
   if (surf)
-    method <- zinbsurf
-
-  zinb <- method(expr, K=K, epsilon=1000, X=my_formula, verbose=verbose) #, BPPARAM=MulticoreParam(4))
+    zinb <- zinbsurf(expr, K=K, epsilon=1000, X=my_formula, verbose=verbose, prop_fit=surf_freq) #, BPPARAM=MulticoreParam(4))
+  else
+    zinb <- zinbwave(expr, K=K, epsilon=1000, X=my_formula, verbose=verbose) #, BPPARAM=MulticoreParam(4))
 
   zinb
 }
@@ -362,10 +364,10 @@ visualize_it <- function(zinb, output_prefix=NULL, surf=FALSE) {
 
 doit <- function(expr, types=2, output_prefix="./",
                  filter_genes=FALSE, filter_spots=FALSE,
-                 var_genes=100, top_genes=100, surf=FALSE) {
+                 var_genes=100, top_genes=100, surf=FALSE, surf_freq=0.1) {
   zinb <- analyze(expr, K=types,
                   filter_genes=filter_genes, filter_spots=filter_spots,
-                  var_genes=var_genes, top_genes=top_genes, surf=surf)
+                  var_genes=var_genes, top_genes=top_genes, surf=surf, surf_freq=surf_freq)
   visualize_it(zinb, output_prefix=output_prefix, surf=surf)
   zinb
 }
@@ -381,7 +383,7 @@ main <- function(paths, opt) {
                     transpose=opts$transpose)
   doit(expr, types=opts$types, output_prefix=opts$out,
        filter_genes=opts$filter_genes, filter_spots=opts$filter_spots,
-       var_genes=opts$var, top_genes=opts$top, surf=opts$surf)
+       var_genes=opts$var, top_genes=opts$top, surf=opts$surf, surf_freq=opt$surf_freq)
 }
 
 if(!interactive()) {
