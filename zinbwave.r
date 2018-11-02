@@ -383,7 +383,7 @@ main <- function(paths, opt) {
                     transpose=opts$transpose)
   doit(expr, types=opts$types, output_prefix=opts$out,
        filter_genes=opts$filter_genes, filter_spots=opts$filter_spots,
-       var_genes=opts$var, top_genes=opts$top, surf=opts$surf, surf_freq=opt$surf_freq)
+       var_genes=opts$var, top_genes=opts$top, surf=opts$surf, surf_freq=opts$surf_freq)
 }
 
 if(!interactive()) {
