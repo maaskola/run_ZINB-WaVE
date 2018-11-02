@@ -37,6 +37,9 @@ parse_cli_args <- function() {
                      make_option(c("-s", "--filter_spots"), type="logical", default=FALSE,
                                  help="filter spots that are have not at least 5 reads in at least 5 genes",
                                  action="store_true"),
+                     make_option(c("-S", "--surf"), type="logical", default=FALSE,
+                                 help="use ZINB-SURF in place of ZINB-WaVE for large datasets",
+                                 action="store_true"),
                      make_option(c("-v", "--verbose"), type="logical", default=FALSE,
                                  help="be verbose",
                                  action="store_true"),
@@ -54,6 +57,8 @@ parse_cli_args <- function() {
 
 if (!interactive()) {
   opt <- parse_cli_args()
+  if (opt$options$surf)
+    opt$options$out <- gsub("wave", "surf", opt$options$out)
   verbose <- opt$option$verbose
   if (verbose)
     print(opt)
@@ -215,7 +220,7 @@ load_data <- function(paths=c(), design_path=NULL, transpose=FALSE) {
   SummarizedExperiment(assays=list(counts=m), colData=colData)
 }
 
-analyze <- function(expr, K=2, filter_genes=FALSE, filter_spots=FALSE, var_genes=100, top_genes=100) {
+analyze <- function(expr, K=2, filter_genes=FALSE, filter_spots=FALSE, var_genes=100, top_genes=100, surf=FALSE) {
   if (filter_genes) {
     print("Before gene filtering")
     print(dim(expr))
@@ -276,25 +281,37 @@ analyze <- function(expr, K=2, filter_genes=FALSE, filter_spots=FALSE, var_genes
   my_formula = paste0("~", paste(cols, collapse="+"))
   print("using formula:")
   print(my_formula)
-  zinb <- zinbwave(expr, K=K, epsilon=1000, X=my_formula, verbose=verbose) #, BPPARAM=MulticoreParam(4))
+
+  method <- zinbwave
+  if (surf)
+    method <- zinbsurf
+
+  zinb <- method(expr, K=K, epsilon=1000, X=my_formula, verbose=verbose) #, BPPARAM=MulticoreParam(4))
 
   zinb
 }
 
-visualize_it <- function(zinb, output_prefix=NULL) {
+visualize_it <- function(zinb, output_prefix=NULL, surf=FALSE) {
   coords <- cbind(x=zinb$x, y=zinb$y)
   sections <- unique(sort(zinb$section))
+
+  fn <- function(suffix) {
+    method <- "WaVE"
+    if (surf)
+      method <- "SURF"
+    file.path(output_prefix, paste("ZINB", method, suffix, sep="-"))
+  }
 
   W <- reducedDim(zinb)
   dir.create(output_prefix)
   if (!is.null(output_prefix)) {
-    write.table(W, file=file.path(output_prefix, "ZINB-WaVE-output.tsv"), sep="\t", quote=FALSE)
-    write.table(colData(zinb), file=file.path(output_prefix, "ZINB-WaVE-colData.tsv"), sep="\t", quote=FALSE)
+    write.table(W, file=fn("output.tsv"), sep="\t", quote=FALSE)
+    write.table(colData(zinb), file=fn("colData.tsv"), sep="\t", quote=FALSE)
     for (section_idx in sections) {
       these <- zinb$section==section_idx
       w <- W[these,]
       rownames(w) <- gsub(".* ", "", rownames(w))
-      write.table(w, file=file.path(output_prefix, paste0("ZINB-WaVE-output-section", section_idx, ".tsv")), sep="\t", quote=FALSE)
+      write.table(w, file=fn(sprintf("output-section%04d.tsv", section_idx)), sep="\t", quote=FALSE)
     }
   }
 
@@ -302,14 +319,14 @@ visualize_it <- function(zinb, output_prefix=NULL) {
     ggplot(aes(W1, W2, colour=section)) + geom_point() +
     scale_color_brewer(type = "qual", palette = "Set1") +
     coord_equal() + theme_classic()
-  ggsave(file.path(output_prefix, "ZINB-WaVE-ggplot-scatter-W1-W2.pdf"))
+  ggsave(fn("ggplot-scatter-W1-W2.pdf"))
 
   uniformize <- function(x) {
     apply(x, 2, function(y) { z <- y - min(y); z / max(z) })
   }
 
   num_plot_rows <- ceiling(sqrt(length(unique(sort(zinb$section)))))
-  pdf(file.path(output_prefix, "ZINB-WaVE-ggplot-spatial.pdf"), width=6*num_plot_rows, height=6*num_plot_rows)
+  pdf(fn("ggplot-spatial.pdf"), width=6*num_plot_rows, height=6*num_plot_rows)
   for(n in 1:ncol(W)) {
     p <- data.frame(z=W[,n], x=zinb$x, y=zinb$y, section=as.character(zinb$section)) %>%
       # ggplot(aes(x, y)) + geom_point() +
@@ -320,12 +337,12 @@ visualize_it <- function(zinb, output_prefix=NULL) {
     print(p)
   }
   dev.off()
-  # ggsave(file.path(output_prefix, "ZINB-WaVE-ggplot-spatial.pdf"))
+  # ggsave(fn("ggplot-spatial.pdf"))
 
 
 
   n <- ceiling(sqrt(length(sections)))
-  pdf(file.path(output_prefix, "ZINB-WaVE-visual.pdf"), width=n*6, height=n*6)
+  pdf(fn("visual.pdf"), width=n*6, height=n*6)
   for (col_idx in 1:ncol(W)) {
     par(mfrow=c(n, n))
     for (section_idx in sections) {
@@ -339,11 +356,11 @@ visualize_it <- function(zinb, output_prefix=NULL) {
 
 doit <- function(expr, types=2, output_prefix="./",
                  filter_genes=FALSE, filter_spots=FALSE,
-                 var_genes=100, top_genes=100) {
+                 var_genes=100, top_genes=100, surf=FALSE) {
   zinb <- analyze(expr, K=types,
                   filter_genes=filter_genes, filter_spots=filter_spots,
-                  var_genes=var_genes, top_genes=top_genes)
-  visualize_it(zinb, output_prefix=output_prefix)
+                  var_genes=var_genes, top_genes=top_genes, surf=surf)
+  visualize_it(zinb, output_prefix=output_prefix, surf=surf)
   zinb
 }
 
@@ -353,11 +370,12 @@ main_fluidigm <- function(...) {
 }
 
 main <- function(paths, opt) {
-  expr <- load_data(paths=paths, design_path=opt$options$design,
-                    transpose=opt$options$transpose)
-  doit(expr, types=opt$options$types, output_prefix=opt$options$out,
-       filter_genes=opt$options$filter_genes, filter_spots=opt$options$filter_spots,
-       var_genes=opt$options$var, top_genes=opt$options$top)
+  opts = opt$options
+  expr <- load_data(paths=paths, design_path=opts$design,
+                    transpose=opts$transpose)
+  doit(expr, types=opts$types, output_prefix=opts$out,
+       filter_genes=opts$filter_genes, filter_spots=opts$filter_spots,
+       var_genes=opts$var, top_genes=opts$top, surf=opts$surf)
 }
 
 if(!interactive()) {
