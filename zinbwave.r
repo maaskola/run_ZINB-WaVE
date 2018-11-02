@@ -73,14 +73,14 @@ suppressPackageStartupMessages({
   library(biomaRt)
 })
 
-st.load.matrix = function(path, suffix="", row.names=1, ...) {
+st.load.matrix = function(path, row.names=1, ...) {
   x = c()
-  tmp = try({ x = read.delim(paste(path, suffix, sep=""),
-                                    header=T,
-                                    row.names=row.names,
-                                    sep="\t",
-                                    check.names=F,
-                                    ...)})
+  tmp = try({ x = read.delim(path,
+                             header=T,
+                             row.names=row.names,
+                             sep="\t",
+                             check.names=F,
+                             ...)})
 
   if(inherits(tmp, 'try-error')) {
     return(as.matrix(c()))
