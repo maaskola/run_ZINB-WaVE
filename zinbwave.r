@@ -349,17 +349,19 @@ visualize_it <- function(zinb, output_prefix=NULL, surf=FALSE) {
 
 
 
-  n <- ceiling(sqrt(length(sections)))
-  pdf(fn("visual.pdf"), width=n*6, height=n*6)
-  for (col_idx in 1:ncol(W)) {
-    par(mfrow=c(n, n))
-    for (section_idx in sections) {
-      these <- zinb$section==section_idx
-      w <- W[these, col_idx]
-      visualize(w, coords=coords[these,])
+  tmp = try({
+    n <- ceiling(sqrt(length(sections)))
+    pdf(fn("visual.pdf"), width=n*6, height=n*6)
+    for (col_idx in 1:ncol(W)) {
+      par(mfrow=c(n, n))
+      for (section_idx in sections) {
+        these <- zinb$section==section_idx
+        w <- W[these, col_idx]
+        visualize(w, coords=coords[these,])
+      }
     }
-  }
-  dev.off()
+    dev.off()
+  })
 }
 
 doit <- function(expr, types=2, output_prefix="./",
