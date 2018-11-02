@@ -25,14 +25,14 @@ verbose = TRUE
 parse_cli_args <- function() {
   proposed_out_prefix <- gsub(" ", "_", paste("zinbwave", Sys.time()))
   option_list = list(
-                     make_option(c("-t", "--types"), type="numeric", default=10,
-                                 help="number of types to use [default = 10]",
+                     make_option(c("-t", "--types"), type="numeric", default=20,
+                                 help="number of types to use [default = 20]",
                                  metavar="N"),
-                     make_option(c("", "--top"), type="numeric", default=100,
-                                 help="number of top expressed genes to use; use 0 for all [default = 100]",
+                     make_option(c("", "--top"), type="numeric", default=0,
+                                 help="number of top expressed genes to use; use 0 for all [default = 0]",
                                  metavar="N"),
                      make_option(c("", "--var"), type="numeric", default=0,
-                                 help="number of most variable genes to use; use 0 for all [default = 100]",
+                                 help="number of most variable genes to use; use 0 for all [default = 0]",
                                  metavar="N"),
                      make_option(c("", "--transpose"), type="logical", default=FALSE,
                                  help="ensure that genes are rows and columns are spots; use this option if spots are rows and genes are columns",
