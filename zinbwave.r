@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 
+# TODO
+# make it fail more gracefully when non-integered coordinates are given
+
 install_package <- FALSE
 
 if (install_package) {
