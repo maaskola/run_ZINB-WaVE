@@ -2,6 +2,9 @@
 
 # TODO
 # make it fail more gracefully when non-integered coordinates are given
+# add runtime
+
+start_time <- Sys.time()
 
 install_package <- FALSE
 
@@ -383,7 +386,12 @@ main <- function(paths, opt) {
 
 if(!interactive()) {
 
+  start_time <- Sys.time()
   # paths <- commandArgs(trailingOnly=TRUE)
   paths <- opt$args
   main(paths, opt)
+  stop_time <- Sys.time()
+  cat("Runtime: ")
+  cat(difftime(stop_time, start_time, " sec"))
+  cat("sec \n")
 }
